@@ -48,6 +48,17 @@ func RegisterRoutes(mux *http.ServeMux, db *gorm.DB, cfg config.Config) {
 	mux.Handle("POST /api/auth/logout", chain(h.logout, middleware.Logger, middleware.CORS(cfg.FrontendOrigin)))
 	mux.Handle("GET /api/auth/me", chain(h.me, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed()))
 	mux.Handle("GET /api/auth/me/status", chain(h.meStatus, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed()))
+
+	// 1.2 Manufacturer Workshop Profile.
+	mux.Handle("GET /api/manufacturer/workshop", chain(h.getMyWorkshop, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleManufacturer)))
+	mux.Handle("POST /api/workshops", chain(h.createWorkshop, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleManufacturer)))
+	mux.Handle("GET /api/workshops/{id}", chain(h.getWorkshop, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed()))
+	mux.Handle("PUT /api/workshops/{id}", chain(h.updateWorkshop, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleManufacturer)))
+	mux.Handle("GET /api/workshops/{id}/public", chain(h.getPublicWorkshop, middleware.Logger, middleware.CORS(cfg.FrontendOrigin)))
+	mux.Handle("POST /api/workshops/{id}/photos", chain(h.uploadWorkshopPhoto, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleManufacturer)))
+	mux.Handle("GET /api/workshops/{id}/photos", chain(h.listWorkshopPhotos, middleware.Logger, middleware.CORS(cfg.FrontendOrigin)))
+	mux.Handle("DELETE /api/workshops/{id}/photos/{photoId}", chain(h.deleteWorkshopPhoto, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleManufacturer)))
+
 }
 
 func (h *Handler) health(w http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"unicode"
 
 	"gorm.io/gorm"
 
@@ -34,8 +35,8 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-	if req.Name == "" || req.Email == "" || len(req.Password) < 8 {
-		writeError(w, http.StatusBadRequest, "name, email and a password of at least 8 characters are required")
+	if req.Name == "" || req.Email == "" || !validPassword(req.Password) {
+		writeError(w, http.StatusBadRequest, "name, email and a password of at least 8 characters with a letter and a number are required")
 		return
 	}
 	role := models.Role(req.Role)
@@ -138,4 +139,20 @@ func (h *Handler) meStatus(w http.ResponseWriter, r *http.Request) {
 		"status":     user.Status,
 		"created_at": user.CreatedAt,
 	})
+}
+
+func validPassword(p string) bool {
+	if len(p) < 8 {
+		return false
+	}
+	hasLetter, hasDigit := false, false
+	for _, c := range p {
+		if unicode.IsLetter(c) {
+			hasLetter = true
+		}
+		if unicode.IsDigit(c) {
+			hasDigit = true
+		}
+	}
+	return hasLetter && hasDigit
 }
