@@ -42,6 +42,13 @@ func RegisterRoutes(mux *http.ServeMux, db *gorm.DB, cfg config.Config) {
 	// Uploaded workshop photos (1.2) are served from ./uploads.
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
+	// 1.4 Workshop Search — public buyer-facing endpoint.
+	mux.Handle("GET /api/workshops", chain(
+		h.searchWorkshops,
+		middleware.Logger,
+		middleware.CORS(cfg.FrontendOrigin),
+	))
+
 	// C.1 Registration and Login.
 	mux.Handle("POST /api/auth/register", chain(h.register, middleware.Logger, middleware.CORS(cfg.FrontendOrigin)))
 	mux.Handle("POST /api/auth/login", chain(h.login, middleware.Logger, middleware.CORS(cfg.FrontendOrigin)))
