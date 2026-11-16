@@ -1,0 +1,264 @@
+{
+  "info": {
+    "_postman_id": "7a8b3a31-9f44-4c58-9d25-fac3workshopsearch",
+    "name": "FactoryMatch - FAC-3 Workshop Search & Filtering",
+    "description": "FAC-3 API tests. Requires the backend at http://localhost:8080 and the demo seed data in PostgreSQL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. API Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/healthz"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Health returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('Health status is ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Browse All Approved Workshops",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/workshops",
+        "description": "Requires the two approved demo workshops to be seeded."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Response contains count, filters and workshops', () => {",
+              "  pm.expect(body).to.have.all.keys('count', 'filters', 'workshops');",
+              "  pm.expect(body.workshops).to.be.an('array');",
+              "});",
+              "pm.test('Only approved workshops are returned', () => {",
+              "  body.workshops.forEach(w => {",
+              "    pm.expect(w.verified).to.eql(true);",
+              "    pm.expect(w.verification_status).to.eql('approved');",
+              "    pm.expect(w.capabilities).to.be.an('array');",
+              "  });",
+              "});",
+              "pm.test('Two approved demo workshops are returned', () => pm.expect(body.count).to.eql(2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Process - CNC Machining",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/workshops?process=CNC%20Machining",
+        "description": "Exact, case-insensitive process filter."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Process filter echoed', () => pm.expect(body.filters.process).to.eql('CNC Machining'));",
+              "pm.test('Dhaka Precision Works is the only match', () => {",
+              "  pm.expect(body.count).to.eql(1);",
+              "  pm.expect(body.workshops[0].name).to.eql('Dhaka Precision Works');",
+              "  body.workshops[0].capabilities.forEach(c => pm.expect(c.process.toLowerCase()).to.eql('cnc machining'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Material - Steel",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/workshops?material=Steel",
+        "description": "Verifies Steel does not partially match Stainless Steel."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Only Gazipur Laser Fabrication matches Steel', () => {",
+              "  pm.expect(body.filters.material).to.eql('Steel');",
+              "  pm.expect(body.count).to.eql(1);",
+              "  pm.expect(body.workshops[0].name).to.eql('Gazipur Laser Fabrication');",
+              "  body.workshops[0].capabilities.forEach(c => pm.expect(c.material.toLowerCase()).to.eql('steel'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Material - Stainless Steel",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/workshops?material=Stainless%20Steel",
+        "description": "Verifies Stainless Steel is matched separately."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Only Dhaka Precision Works and its matching capability are returned', () => {",
+              "  pm.expect(body.count).to.eql(1);",
+              "  pm.expect(body.workshops[0].name).to.eql('Dhaka Precision Works');",
+              "  pm.expect(body.workshops[0].capabilities.length).to.eql(1);",
+              "  pm.expect(body.workshops[0].capabilities[0].material).to.eql('Stainless Steel');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. District - Gazipur",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/workshops?district=Gazipur",
+        "description": "Matches the current behavior where district is searched in address/operating locations."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Both demo workshops list Gazipur', () => {",
+              "  pm.expect(body.filters.district).to.eql('Gazipur');",
+              "  pm.expect(body.count).to.eql(2);",
+              "  const names = body.workshops.map(w => w.name);",
+              "  pm.expect(names).to.include('Dhaka Precision Works');",
+              "  pm.expect(names).to.include('Gazipur Laser Fabrication');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Keyword - Precision",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/workshops?keyword=Precision",
+        "description": "Searches workshop profile text using a keyword."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Precision returns Dhaka Precision Works', () => {",
+              "  pm.expect(body.filters.keyword).to.eql('Precision');",
+              "  pm.expect(body.count).to.eql(1);",
+              "  pm.expect(body.workshops[0].name).to.eql('Dhaka Precision Works');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Combined - All Four Filters",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/workshops?process=CNC%20Machining&material=Stainless%20Steel&district=Dhaka&keyword=Precision",
+        "description": "Exercises process, material, district and keyword together."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('All four filters are echoed', () => {",
+              "  pm.expect(body.filters.process).to.eql('CNC Machining');",
+              "  pm.expect(body.filters.material).to.eql('Stainless Steel');",
+              "  pm.expect(body.filters.district).to.eql('Dhaka');",
+              "  pm.expect(body.filters.keyword).to.eql('Precision');",
+              "});",
+              "pm.test('One expected workshop and one matching capability are returned', () => {",
+              "  pm.expect(body.count).to.eql(1);",
+              "  pm.expect(body.workshops[0].name).to.eql('Dhaka Precision Works');",
+              "  pm.expect(body.workshops[0].capabilities.length).to.eql(1);",
+              "  pm.expect(body.workshops[0].capabilities[0].process).to.eql('CNC Machining');",
+              "  pm.expect(body.workshops[0].capabilities[0].material).to.eql('Stainless Steel');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Combined - No Matching Workshop",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/workshops?process=CNC%20Machining&material=Steel",
+        "description": "Checks AND logic when no workshop has both filters on the same capability."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Valid no-match search returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('No workshops match both filters', () => {",
+              "  pm.expect(body.count).to.eql(0);",
+              "  pm.expect(body.workshops).to.be.an('array').that.is.empty;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
