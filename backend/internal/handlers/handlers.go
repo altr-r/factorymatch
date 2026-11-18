@@ -88,6 +88,14 @@ func RegisterRoutes(mux *http.ServeMux, db *gorm.DB, cfg config.Config) {
 		authed(models.RoleBuyer),
 	))
 
+	// 1.5 Workshop Shortlisting (buyer only).
+	mux.Handle("GET /api/buyer/shortlist", chain(h.listShortlist, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleBuyer)))
+	mux.Handle("POST /api/buyer/shortlist", chain(h.addShortlist, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleBuyer)))
+	mux.Handle("DELETE /api/buyer/shortlist/{workshopId}", chain(h.removeShortlist, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleBuyer)))
+	mux.Handle("GET /api/buyer/shortlist/recipients", chain(h.shortlistRecipients, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleBuyer)))
+
+	// 3.3 Side-by-Side Quotation Comparison (buyer owning the RFQ only).
+	mux.Handle("GET /api/rfqs/{id}/quotations/compare", chain(h.compareQuotations, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleBuyer)))
 }
 
 func (h *Handler) health(w http.ResponseWriter, r *http.Request) {
