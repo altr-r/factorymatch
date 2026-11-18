@@ -66,6 +66,28 @@ func RegisterRoutes(mux *http.ServeMux, db *gorm.DB, cfg config.Config) {
 	mux.Handle("GET /api/workshops/{id}/photos", chain(h.listWorkshopPhotos, middleware.Logger, middleware.CORS(cfg.FrontendOrigin)))
 	mux.Handle("DELETE /api/workshops/{id}/photos/{photoId}", chain(h.deleteWorkshopPhoto, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleManufacturer)))
 
+	// 1.1 Buyer Organization Profile.
+	mux.Handle("POST /api/buyer/profile", chain(
+		h.createBuyerProfile,
+		middleware.Logger,
+		middleware.CORS(cfg.FrontendOrigin),
+		authed(models.RoleBuyer),
+	))
+
+	mux.Handle("GET /api/buyer/profile", chain(
+		h.getBuyerProfile,
+		middleware.Logger,
+		middleware.CORS(cfg.FrontendOrigin),
+		authed(models.RoleBuyer),
+	))
+
+	mux.Handle("PUT /api/buyer/profile", chain(
+		h.updateBuyerProfile,
+		middleware.Logger,
+		middleware.CORS(cfg.FrontendOrigin),
+		authed(models.RoleBuyer),
+	))
+
 	// 1.5 Workshop Shortlisting (buyer only).
 	mux.Handle("GET /api/buyer/shortlist", chain(h.listShortlist, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleBuyer)))
 	mux.Handle("POST /api/buyer/shortlist", chain(h.addShortlist, middleware.Logger, middleware.CORS(cfg.FrontendOrigin), authed(models.RoleBuyer)))
